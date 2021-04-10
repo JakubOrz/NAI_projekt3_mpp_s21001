@@ -19,7 +19,7 @@ okno.addbutton("Wyszukaj język w zdaniu", rdzen.ocenjezyk)
 okno.addbutton("Resetuj neurony", rdzen.resetuj)
 okno.addbutton("Wyczyść tabelke", okno.clear)
 okno.addbutton("Zmiana zbioru treningowego", rdzen.zmienzbiortrenignowy)
-okno.addbutton("Zmiana zbioru treningowego", rdzen.zmienzbiortestowy)
+okno.addbutton("Zmiana zbioru testowego", rdzen.zmienzbiortestowy)
 okno.addbutton("Zmiana parametru alfa", rdzen.zmienalfa)
 
 app.exec_()
