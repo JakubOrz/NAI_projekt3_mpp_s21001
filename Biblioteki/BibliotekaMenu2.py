@@ -1,11 +1,12 @@
-from PyQt5.QtWidgets import QWidget, QMessageBox
+from PyQt5.QtWidgets import QWidget, QMessageBox, QTableWidgetItem, QTableWidget, QVBoxLayout
 from PyQt5.QtWidgets import QPushButton
 from PyQt5.QtWidgets import QLabel, QGridLayout
 from PyQt5.QtWidgets import QInputDialog
+from Biblioteki.test2 import App
 import matplotlib.pyplot as plt
 
 
-class MenuInterface():
+class MenuInterface:
     def collectdata(self, inputname, message) -> tuple:
         pass
 
@@ -19,6 +20,12 @@ class MenuInterface():
         pass
 
     def drawplot(self, dane, nazwa="Wykres", osx="X", osy="Y"):
+        pass
+
+    def drawtable(self, dane, legenda="Brak legendy", nazwa="Tabelka", prefixx="", prefixy=""):
+        pass
+
+    def clear(self):
         pass
 
 
@@ -39,6 +46,9 @@ class ButtonMenu(QWidget, MenuInterface):
         self.outputlabel = QLabel("", self)
         self.layout.addWidget(self.infolabel, 0, 0)
         self.layout.addWidget(self.outputlabel, 1, 0)
+
+        self.tabelka = None
+        self.tabelkalabel = None
 
         self.show()
 
@@ -78,3 +88,26 @@ class ButtonMenu(QWidget, MenuInterface):
         plt.xlabel(osx, fontsize=14)
         plt.ylabel(osy, fontsize=14)
         plt.show()
+
+    def drawtable(self, dane, legenda="Brak legendy", nazwa="Tabelka", prefixx="", prefixy=""):
+
+        self.tabelkalabel = QLabel(nazwa)
+        self.layout.addWidget(self.tabelkalabel, 19, 0)
+
+        self.tabelka = QTableWidget()
+        self.tabelka.setRowCount(len(dane) + 1)
+        self.tabelka.setColumnCount(len(dane) + 1)
+        for i, el in enumerate(dane):
+            self.tabelka.setItem(i + 1, 0, QTableWidgetItem(prefixx+el))
+            self.tabelka.setItem(0, i + 1, QTableWidgetItem(prefixy+el))
+        for j, slownik in enumerate(dane.items()):
+            for z, wynik in enumerate(slownik[1].items()):
+                self.tabelka.setItem(1 + j, 1 + z, QTableWidgetItem(str(wynik[1])))
+        self.tabelka.setItem(0, 0, QTableWidgetItem(legenda))
+
+        self.layout.addWidget(self.tabelka, 20, 0)
+
+    def clear(self):
+        self.tabelka.setVisible(False)
+        self.tabelkalabel.setVisible(False)
+

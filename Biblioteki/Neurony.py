@@ -2,10 +2,11 @@ from Biblioteki import MathLib
 
 
 class Neuron:
-    def __init__(self, wymiary=3, alfa=0.01, func=None):
+    def __init__(self, wymiary=3, alfa=0.01, func=None, mocnormalizacji=1):
         self.wagi = [0] * wymiary
         self.prog = 0
         self.alfa = alfa
+        self.mocnormalizacji = mocnormalizacji
         self.activationfunc = func
 
     def __str__(self):
@@ -30,5 +31,5 @@ class Neuron:
         d = 1 if wzmocnij else -1
         L = self.alfa
         self.wagi = [float(stare) + (d * L * float(nowy)) for stare, nowy in
-                     zip(self.wagi, MathLib.normalizuj(vektor))]
-        self.wagi = MathLib.normalizuj(self.wagi)
+                     zip(self.wagi, MathLib.normalizuj(vektor, mocnormalizacji=self.mocnormalizacji))]
+        self.wagi = MathLib.normalizuj(self.wagi, mocnormalizacji=self.mocnormalizacji)

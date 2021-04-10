@@ -24,6 +24,9 @@ class Core:
 
         self.neurony = dict()
 
+        if initdata is not None and testset is not None:
+            self._trenuj(self.k)
+
         self.parent.changeinfo(str(self))
 
     def __str__(self):
@@ -33,47 +36,78 @@ class Core:
                f"Ilość powtórzeń uczenia: {self.k}\n" \
                f"Ilość neuronów: {len(self.neurony)}\n"
 
-    def testowa(self):
-        neuron1 = Neuron(wymiary=4, alfa=self.alfa, func=fw.sgn)
-        v1 = [3, 4, 2, 1]
-        print(neuron1.policzwartosc(v1))
-
     def resetuj(self):
         self.neurony.clear()
         self.parent.changeinfo(str(self))
         self.parent.showdata("Neurony zresetowane", important=False)
 
-    def wypiszdane(self):
-        for element in self.traindata:
-            print(element)
+    def zmienzbiortrenignowy(self):
 
-    def trenuj(self):
+        sciezka, cancel = self.parent.collectdata("Zmiana zbioru treningowe", "Podaj mi ścieżkę do pliku CSV z danymi"
+                                                                              "\n Uwaga! Zmiana zbioru treningowego "
+                                                                              "sposowoduje reset "
+                                                                              "neuronów!")
+        if cancel:
+            return
+
+        try:
+            self.traindata = reader.readfile(sciezka, ";")
+            self.resetuj()
+            self.parent.changeinfo(str(self))
+        except FileNotFoundError:
+            self.parent.showdata("Zmiana zbiotru treningowego nieudana!")
+
+    def zmienzbiortestowy(self):
+
+        sciezka, cancel = self.parent.collectdata("Zmiana zbioru testowego", "Podaj mi ścieżkę do pliku CSV z danymi")
+        if cancel:
+            return
+
+        try:
+            self.testdata = reader.readfile(sciezka, ";")
+            self.parent.changeinfo(str(self))
+        except FileNotFoundError:
+            self.parent.showdata("Zmiana zbiotru testowego nieudana!")
+
+    def zmienalfa(self):
+        alpfa, cancel = self.parent.collectdata("Zmiana alpfha", "Podaj mi nowy parametr alfa")
+
+        if cancel:
+            return
+
+        try:
+            self.alfa = float(alpfa)
+            self.parent.showdata("Zmieniono parametr alfa")
+            self.parent.changeinfo(str(self))
+        except ValueError:
+            self.parent.showdata("Niepoprawny paramter alfa")
+
+    def inicjujtrening(self):
 
         ile, cancel = self.parent.collectdata("Trening", " Ile razy?")
         if cancel:
             return
 
-        skutecznosc = dict()
-        for i in range(0, int(ile)):
+        self._trenuj(k=int(ile))
+
+        self.parent.showdata(f"Trening ukończony", important=False)
+        self.parent.changeinfo(str(self))
+
+    def _trenuj(self, k: int):
+
+        for i in range(0, k):
 
             for element in self.traindata:
                 # dodawanie nowego neuronu po napotkaniu nowej klasy
                 if self.neurony.get(element[-1]) is None:
-                    self.neurony[element[-1]] = Neuron(wymiary=len(element) - 1, func=fw.sgn)
+                    self.neurony[element[-1]] = Neuron(wymiary=len(element) - 1, func=fw.sgn, mocnormalizacji=2)
 
                 # korekta wag
                 otrzymany = self.wybierz(element[:-1])
                 if otrzymany != element[-1]:
-                    #testowałem funkcje uczenia i ta jest najbardziej optymalna
+                    # testowałem funkcje uczenia i ta jest najbardziej optymalna
                     self.neurony.get(otrzymany).korektawag2(element[:-1], wzmocnij=False)
                     self.neurony.get(element[-1]).korektawag2(element[:-1], wzmocnij=True)
-
-            skutecznosc[i] = self.obliczskutecznosc(False)
-        czywykres = self.parent.askquestion("Skutecznosc ", "Czy narysować wykres skuteczności w zależności od tury?")
-        if czywykres:
-            self.parent.drawplot(skutecznosc, "Skutecznosc", "Tura", "Skutecznosc")
-        self.parent.showdata(f"Trening ukończony", important=False)
-        self.parent.changeinfo(str(self))
 
     def wybierz(self, vektor):
         wyniki = dict()
@@ -84,18 +118,46 @@ class Core:
         # print(f"Wybrany {wybrany}")
         return wybrany
 
-    def obliczskutecznosc(self, glosno=False):
+    def _obliczskutecznosc(self, szczegolowe=False):
         trafione = 0
-        for element in self.traindata:
+        omylki = {name: {subname: 0 for subname in self.neurony} for name in self.neurony}
+
+        for element in self.testdata:
             wybrany = self.wybierz(element[:-1])
-            # print(f"Oczekiwany: {element[-1]} Otrzymany: {wybrany}")
+            omylki.get(element[-1])[wybrany] += 1
+            if szczegolowe:
+                print(f"Oczekiwany: {element[-1]} Otrzymany: {wybrany}")
             if wybrany == element[-1]:
                 trafione += 1
-        if glosno:
-            self.parent.showdata(f"Skuteczność wynosi: {trafione / len(self.traindata)}")
-        else:
-            return trafione / len(self.traindata)
+
+        self.parent.drawtable(omylki, "Element\Zaklasyfikowany jako", nazwa="Macierz omyłek sieci")
+        return trafione / len(self.testdata)
+
+    def pokazskutecznosc(self):
+        skutecznosc = round(self._obliczskutecznosc() * 100, 3)
+        self.parent.showdata(f"Skuteczność sieci wynosi: {skutecznosc}%", important=False)
 
     def pokazneurony(self):
         for neuron in [*self.neurony]:
             print(neuron, self.neurony.get(neuron))
+
+    def ocenjezyk(self):
+        wyraz, cancel = self.parent.collectdata("Ocena jezyka", "Napisz mi zdanie w dowolnym języku a ja ocenię jaki "
+                                                                "to język\n Można używać wielkich i małych liter jak i"
+                                                                "znaków specjalnych które zignoruję im dłuższe zdanie "
+                                                                "tym lepiej")
+        if cancel or len(wyraz) < 1:
+            return
+
+        slownik = {chr(one): 0 for one in range(97, 123)}
+
+        for letter in wyraz:
+            try:
+                slownik[letter.lower()] += 1
+            except KeyError:
+                pass
+
+        sumka = sum([liczba[1] for liczba in slownik.items()])
+        frequency = [float(liczba[1]) / sumka for liczba in slownik.items()]
+
+        self.parent.showdata(f"Według mnie jest to język : {self.wybierz(frequency)}", important=True)
